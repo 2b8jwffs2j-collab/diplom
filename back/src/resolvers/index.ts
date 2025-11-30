@@ -6,6 +6,7 @@ import { categoryResolvers } from './category';
 import { reviewResolvers } from './review';
 import { adminResolvers } from './admin';
 import { stockRequestResolvers } from './stockRequest';
+import { refundRequestResolvers } from './refundRequest';
 
 // Бүх resolvers-ийг нэгтгэх
 export const resolvers = {
@@ -18,6 +19,7 @@ export const resolvers = {
     ...reviewResolvers.Query,
     ...adminResolvers.Query,
     ...stockRequestResolvers.Query,
+    ...refundRequestResolvers.Query,
   },
   Mutation: {
     ...authResolvers.Mutation,
@@ -27,6 +29,7 @@ export const resolvers = {
     ...reviewResolvers.Mutation,
     ...adminResolvers.Mutation,
     ...stockRequestResolvers.Mutation,
+    ...refundRequestResolvers.Mutation,
   },
   User: authResolvers.User,
   Profile: authResolvers.Profile,
@@ -38,4 +41,5 @@ export const resolvers = {
   Category: categoryResolvers.Category,
   Review: reviewResolvers.Review,
   StockRequest: stockRequestResolvers.StockRequest,
+  RefundRequest: refundRequestResolvers.RefundRequest,
 };

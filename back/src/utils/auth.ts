@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
+import crypto from 'crypto';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production';
 const JWT_EXPIRES_IN = '7d'; // 7 хоног
@@ -32,4 +33,9 @@ export async function hashPassword(password: string): Promise<string> {
 // Нууц үг шалгах
 export async function comparePassword(password: string, hashedPassword: string): Promise<boolean> {
   return bcrypt.compare(password, hashedPassword);
+}
+
+// Random token үүсгэх (нууц үг сэргээхэд ашиглана)
+export function generateResetToken(): string {
+  return crypto.randomBytes(32).toString('hex');
 }

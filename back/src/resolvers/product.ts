@@ -5,6 +5,8 @@ interface CreateProductInput {
   name: string;
   description?: string;
   price: number; // float (төгрөг)
+  originalPrice?: number;
+  discount?: number;
   stock: number;
   categoryId?: number;
   imageUrls?: string[];
@@ -16,6 +18,8 @@ interface UpdateProductInput {
   name?: string;
   description?: string;
   price?: number;
+  originalPrice?: number;
+  discount?: number;
   stock?: number;
   categoryId?: number;
   imageUrls?: string[];
@@ -120,12 +124,20 @@ export const productResolvers = {
         });
       }
 
+      // Discount байвал originalPrice-ийг тооцоолно
+      const calculatedOriginalPrice =
+        input.discount && input.discount > 0
+          ? input.price / (1 - input.discount / 100)
+          : input.originalPrice;
+
       const product = await context.prisma.product.create({
         data: {
           sellerId: context.user.id,
           name: input.name,
           description: input.description,
           price: priceToCents(input.price),
+          originalPrice: calculatedOriginalPrice ? priceToCents(calculatedOriginalPrice) : null,
+          discount: input.discount || null,
           stock: input.stock,
           categoryId: input.categoryId,
           imageUrls: input.imageUrls ? JSON.stringify(input.imageUrls) : null,
@@ -174,7 +186,36 @@ export const productResolvers = {
       const updateData: any = {};
       if (input.name) updateData.name = input.name;
       if (input.description !== undefined) updateData.description = input.description;
-      if (input.price) updateData.price = priceToCents(input.price);
+
+      // Price болон discount өөрчлөгдсөн эсэхийг шалгах
+      const priceChanged = input.price !== undefined;
+      const discountChanged = input.discount !== undefined;
+
+      if (priceChanged && input.price !== undefined) {
+        updateData.price = priceToCents(input.price);
+      }
+
+      if (discountChanged) {
+        updateData.discount = input.discount || null;
+      }
+
+      // Discount байвал originalPrice-ийг тооцоолно
+      if (priceChanged || discountChanged) {
+        const currentPrice =
+          input.price !== undefined ? input.price : Number(existingProduct.price) / 100;
+        const currentDiscount =
+          input.discount !== undefined ? input.discount : existingProduct.discount;
+
+        if (currentDiscount && currentDiscount > 0) {
+          const calculatedOriginalPrice = currentPrice / (1 - currentDiscount / 100);
+          updateData.originalPrice = priceToCents(calculatedOriginalPrice);
+        } else {
+          updateData.originalPrice = null;
+        }
+      } else if (input.originalPrice !== undefined) {
+        // Хэрэв originalPrice шууд өгөгдсөн бол (backward compatibility)
+        updateData.originalPrice = input.originalPrice ? priceToCents(input.originalPrice) : null;
+      }
       if (input.stock !== undefined) updateData.stock = input.stock;
       if (input.categoryId !== undefined) updateData.categoryId = input.categoryId;
       if (input.imageUrls) updateData.imageUrls = JSON.stringify(input.imageUrls);
@@ -260,6 +301,8 @@ export const productResolvers = {
 
   Product: {
     price: (parent: any) => centsToPrice(parent.price),
+    originalPrice: (parent: any) =>
+      parent.originalPrice ? centsToPrice(parent.originalPrice) : null,
     imageUrls: (parent: any) => {
       try {
         return parent.imageUrls ? JSON.parse(parent.imageUrls) : [];

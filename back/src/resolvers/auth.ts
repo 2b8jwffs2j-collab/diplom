@@ -1,5 +1,5 @@
 import { Context } from '../utils/context';
-import { hashPassword, comparePassword, generateToken } from '../utils/auth';
+import { hashPassword, comparePassword, generateToken, generateResetToken } from '../utils/auth';
 import { GraphQLError } from 'graphql';
 
 interface RegisterInput {
@@ -8,7 +8,7 @@ interface RegisterInput {
   role?: 'BUYER' | 'SELLER' | 'ADMIN';
   firstName?: string;
   lastName?: string;
-  phone?: string;
+  phone: string;
 }
 
 interface LoginInput {
@@ -65,6 +65,13 @@ export const authResolvers = {
 
       if (existingUser) {
         throw new GraphQLError('Энэ имэйл хаяг бүртгэлтэй байна', {
+          extensions: { code: 'BAD_USER_INPUT' },
+        });
+      }
+
+      // Утасны дугаар шалгах
+      if (!input.phone || !input.phone.trim()) {
+        throw new GraphQLError('Утасны дугаар оруулна уу', {
           extensions: { code: 'BAD_USER_INPUT' },
         });
       }
@@ -169,6 +176,155 @@ export const authResolvers = {
           },
         });
       }
+    },
+
+    changePassword: async (
+      _: any,
+      { input }: { input: { currentPassword: string; newPassword: string } },
+      context: Context
+    ) => {
+      // Нэвтэрсэн эсэхийг шалгах
+      if (!context.user) {
+        throw new GraphQLError('Нэвтрэх шаардлагатай', {
+          extensions: { code: 'UNAUTHENTICATED' },
+        });
+      }
+
+      // Хэрэглэгчийн одоогийн нууц үгийг авах
+      const user = await context.prisma.user.findUnique({
+        where: { id: context.user.id },
+      });
+
+      if (!user) {
+        throw new GraphQLError('Хэрэглэгч олдсонгүй', {
+          extensions: { code: 'NOT_FOUND' },
+        });
+      }
+
+      // Одоогийн нууц үг зөв эсэхийг шалгах
+      const isValidPassword = await comparePassword(input.currentPassword, user.password);
+      if (!isValidPassword) {
+        throw new GraphQLError('Одоогийн нууц үг буруу байна', {
+          extensions: { code: 'BAD_USER_INPUT' },
+        });
+      }
+
+      // Шинэ нууц үг hash хийх
+      const hashedPassword = await hashPassword(input.newPassword);
+
+      // Нууц үг шинэчлэх
+      await context.prisma.user.update({
+        where: { id: context.user.id },
+        data: { password: hashedPassword },
+      });
+
+      return {
+        success: true,
+        message: 'Нууц үг амжилттай шинэчлэгдлээ',
+      };
+    },
+
+    requestPasswordReset: async (
+      _: any,
+      { input }: { input: { email: string } },
+      context: Context
+    ) => {
+      // Хэрэглэгч хайх
+      const user = await context.prisma.user.findUnique({
+        where: { email: input.email },
+      });
+
+      // Хэрэглэгч олдохгүй байсан ч амжилттай гэж хариу буцаах (security)
+      if (!user) {
+        return {
+          success: true,
+          message: 'Хэрэв энэ имэйл бүртгэлтэй бол нууц үг сэргээх линк имэйлдээ ирнэ',
+        };
+      }
+
+      // Token үүсгэх
+      const token = generateResetToken();
+      const expiresAt = new Date();
+      expiresAt.setHours(expiresAt.getHours() + 1); // 1 цагийн дараа хүчингүй болно
+
+      // Хуучин token-уудыг устгах
+      await context.prisma.passwordResetToken.deleteMany({
+        where: {
+          userId: user.id,
+          used: false,
+        },
+      });
+
+      // Шинэ token үүсгэх
+      await context.prisma.passwordResetToken.create({
+        data: {
+          userId: user.id,
+          token,
+          expiresAt,
+        },
+      });
+
+      // Энд имэйл илгээх логик байх ёстой (nodemailer г.м.)
+      // Одоогоор console.log хийж байна
+      console.log(`Password reset token for ${input.email}: ${token}`);
+      console.log(`Reset link: /change-password?token=${token}`);
+
+      return {
+        success: true,
+        message: 'Хэрэв энэ имэйл бүртгэлтэй бол нууц үг сэргээх линк имэйлдээ ирнэ',
+      };
+    },
+
+    resetPasswordWithToken: async (
+      _: any,
+      { input }: { input: { token: string; newPassword: string } },
+      context: Context
+    ) => {
+      // Token хайх
+      const resetToken = await context.prisma.passwordResetToken.findUnique({
+        where: { token: input.token },
+        include: { user: true },
+      });
+
+      if (!resetToken) {
+        throw new GraphQLError('Token буруу эсвэл хүчингүй байна', {
+          extensions: { code: 'BAD_USER_INPUT' },
+        });
+      }
+
+      // Token ашигласан эсэхийг шалгах
+      if (resetToken.used) {
+        throw new GraphQLError('Энэ token аль хэдийн ашигласан байна', {
+          extensions: { code: 'BAD_USER_INPUT' },
+        });
+      }
+
+      // Token хугацаа дууссан эсэхийг шалгах
+      if (resetToken.expiresAt < new Date()) {
+        throw new GraphQLError('Token хугацаа дууссан байна', {
+          extensions: { code: 'BAD_USER_INPUT' },
+        });
+      }
+
+      // Шинэ нууц үг hash хийх
+      const hashedPassword = await hashPassword(input.newPassword);
+
+      // Нууц үг шинэчлэх
+      await context.prisma.user.update({
+        where: { id: resetToken.userId },
+        data: { password: hashedPassword },
+      });
+
+      // Token-ийг ашигласан гэж тэмдэглэх
+      await context.prisma.passwordResetToken.update({
+        where: { id: resetToken.id },
+        data: { used: true },
+      });
+
+      return {
+        success: true,
+        message: 'Нууц үг амжилттай шинэчлэгдлээ',
+      };
     },
   },
 
