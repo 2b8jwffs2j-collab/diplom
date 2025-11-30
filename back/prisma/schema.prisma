@@ -1,0 +1,218 @@
+// Prisma schema for Handmade Shop
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// Хэрэглэгчийн үндсэн мэдээлэл
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String   // bcrypt hashed
+  role      UserRole @default(BUYER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  profile       Profile?
+  wallet        Wallet?
+  products      Product[]
+  orders        Order[]
+  reviews       Review[]
+  stockRequests StockRequest[]
+}
+
+enum UserRole {
+  BUYER
+  SELLER
+  ADMIN
+}
+
+// Хэрэглэгчийн нэмэлт мэдээлэл
+model Profile {
+  id          Int      @id @default(autoincrement())
+  userId      Int      @unique
+  firstName   String?
+  lastName    String?
+  phone       String?
+  address     String?  @db.Text
+  bio         String?  @db.Text
+  avatarUrl   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// Wallet - Хэрэглэгчийн түрийвч
+model Wallet {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @unique
+  balance   BigInt   @default(0) // төгрөгийн үнэ * 100 (cents format)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user         User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions WalletTransaction[]
+
+  @@index([userId])
+}
+
+// Wallet гүйлгээний түүх (audit log - immutable)
+model WalletTransaction {
+  id           Int                     @id @default(autoincrement())
+  walletId     Int
+  amount       BigInt                  // эерэг (top-up) эсвэл сөрөг (purchase)
+  type         WalletTransactionType
+  description  String?
+  orderId      Int?                    // холбогдох захиалга (хэрэв байвал)
+  externalRef  String?                 @unique // idempotency (Stripe webhook г.м.)
+  createdAt    DateTime                @default(now())
+
+  wallet Wallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  order  Order? @relation(fields: [orderId], references: [id], onDelete: SetNull)
+
+  @@index([walletId])
+  @@index([orderId])
+}
+
+enum WalletTransactionType {
+  TOP_UP
+  PURCHASE
+  REFUND
+  WITHDRAWAL
+}
+
+// Ангилал
+model Category {
+  id        Int       @id @default(autoincrement())
+  name      String    @unique
+  slug      String    @unique
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  products Product[]
+}
+
+// Бүтээгдэхүүн
+model Product {
+  id          Int            @id @default(autoincrement())
+  sellerId    Int
+  categoryId  Int?
+  name        String
+  description String?        @db.Text
+  price       BigInt         // төгрөгийн үнэ * 100
+  stock       Int            @default(0)
+  imageUrls   String?        @db.Text // JSON array of URLs
+  status      ProductStatus  @default(PENDING)
+  materials   String?        // materials used
+  timeToMake  String?        // "2 hours", "3 days" etc
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  seller        User            @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  category      Category?       @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  orderItems    OrderItem[]
+  reviews       Review[]
+  stockRequests StockRequest[]
+
+  @@index([sellerId])
+  @@index([categoryId])
+  @@index([status])
+}
+
+enum ProductStatus {
+  PENDING   // админ хянаж байгаа
+  APPROVED  // борлуулж болно
+  REJECTED  // татгалзсан
+}
+
+// Захиалга
+model Order {
+  id              Int         @id @default(autoincrement())
+  buyerId         Int
+  totalAmount     BigInt      // нийт үнэ (төгрөг * 100)
+  status          OrderStatus @default(PENDING)
+  shippingAddress String?     @db.Text
+  notes           String?     @db.Text
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  buyer             User                @relation(fields: [buyerId], references: [id], onDelete: Cascade)
+  items             OrderItem[]
+  walletTransaction WalletTransaction[]
+
+  @@index([buyerId])
+  @@index([status])
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+// Захиалгын бүтээгдэхүүн
+model OrderItem {
+  id        Int      @id @default(autoincrement())
+  orderId   Int
+  productId Int
+  quantity  Int
+  price     BigInt   // тухайн үеийн үнэ (төгрөг * 100)
+  createdAt DateTime @default(now())
+
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([productId])
+}
+
+// Үнэлгээ/Сэтгэгдэл
+model Review {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  productId Int
+  rating    Int      // 1-5
+  comment   String?  @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@index([userId, productId])
+}
+
+// Урдчилан захиалах хүсэлт
+model StockRequest {
+  id                    Int                  @id @default(autoincrement())
+  userId                Int
+  productId             Int
+  quantity              Int
+  status                StockRequestStatus    @default(PENDING)
+  expectedCompletionDate DateTime?            // Хэзээ дуусах цаг хугацаа
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([productId])
+  @@index([status])
+}
+
+enum StockRequestStatus {
+  PENDING   // Хүлээгдэж байна
+  APPROVED  // Зөвшөөрөгдсөн
+  REJECTED  // Татгалзсан
+}
+
