@@ -37,15 +37,15 @@ function Footer() {
           <div>
             <h3 className="text-lg font-bold mb-4">Холбоо барих</h3>
             <p className="text-gray-400 text-sm">
-              И-мэйл: contact@handmade.mn
+              И-мэйл: dlgnt@yahoo.com
               <br />
-              Утас: +976 7000-0000
+              Утас: +976 89005959
             </p>
           </div>
         </div>
 
         <div className="border-t border-gray-700 mt-8 pt-6 text-center text-gray-400 text-sm">
-          © 2024 Гар урлал дэлгүүр. Бүх эрх хуулиар хамгаалагдсан.
+          © 2025 Гар урлал дэлгүүр. Т.Дөлгөөн дипломын ажил.
         </div>
       </div>
     </footer>
