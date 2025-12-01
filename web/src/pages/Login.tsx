@@ -100,25 +100,6 @@ function Login() {
             Бүртгүүлэх
           </Link>
         </p>
-
-        {/* Demo Accounts */}
-        {/* <div className="mt-6 sm:mt-8 p-4 sm:p-5 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-100">
-          <h3 className="font-semibold text-gray-800 mb-3 text-xs sm:text-sm">Demo бүртгэлүүд:</h3>
-          <div className="text-xs sm:text-sm text-gray-700 space-y-2">
-            <p className="flex items-center space-x-2">
-              <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-              <span>buyer@example.mn / password123</span>
-            </p>
-            <p className="flex items-center space-x-2">
-              <span className="w-2 h-2 bg-blue-600 rounded-full"></span>
-              <span>saruul@example.mn / password123</span>
-            </p>
-            <p className="flex items-center space-x-2">
-              <span className="w-2 h-2 bg-blue-600 rounded-full"></span>
-              <span>admin@handmade.mn / admin123</span>
-            </p>
-          </div>
-        </div> */}
       </div>
     </div>
   );

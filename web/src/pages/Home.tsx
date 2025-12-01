@@ -32,6 +32,7 @@ function Home() {
     skip: !isAuthenticated(),
     fetchPolicy: 'network-only', // Cache-аас биш, network-аас авах
   });
+  console.log(categoriesData);
 
   // Admin нэвтрэсэн бол автоматаар admin panel руу redirect хийх
   useEffect(() => {
@@ -351,24 +352,12 @@ function Home() {
                 {productsData?.products
                   .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
                   .map((product: any) => {
-                    // Calculate discount (use product id for stable random-like discount)
-                    const originalPrice = product.originalPrice || null;
-                    const discount = originalPrice
-                      ? Math.round(
-                          ((parseInt(originalPrice) - parseInt(product.price)) /
-                            parseInt(originalPrice)) *
-                            100
-                        )
-                      : product.id % 2 === 0
-                        ? ((product.id * 7) % 50) + 20
-                        : null;
-
                     return (
                       <ProductCard
                         key={product.id}
                         product={product}
-                        discountPercent={discount || undefined}
-                        originalPrice={originalPrice}
+                        discountPercent={product.discount || undefined}
+                        originalPrice={product.originalPrice}
                       />
                     );
                   })}

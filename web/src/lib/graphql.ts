@@ -74,6 +74,24 @@ export const UPDATE_PROFILE = gql`
   }
 `;
 
+export const REQUEST_PASSWORD_RESET = gql`
+  mutation RequestPasswordReset($input: RequestPasswordResetInput!) {
+    requestPasswordReset(input: $input) {
+      success
+      message
+    }
+  }
+`;
+
+export const RESET_PASSWORD_WITH_TOKEN = gql`
+  mutation ResetPasswordWithToken($input: ResetPasswordInput!) {
+    resetPasswordWithToken(input: $input) {
+      success
+      message
+    }
+  }
+`;
+
 // ========================================
 // PRODUCT QUERIES & MUTATIONS
 // ========================================
@@ -85,6 +103,8 @@ export const GET_PRODUCTS = gql`
       name
       description
       price
+      originalPrice
+      discount
       stock
       imageUrls
       status
@@ -221,6 +241,7 @@ export const MY_ORDERS = gql`
       totalAmount
       status
       shippingAddress
+      phone
       notes
       createdAt
       items {
@@ -251,6 +272,7 @@ export const ORDER = gql`
       totalAmount
       status
       shippingAddress
+      phone
       notes
       createdAt
       updatedAt
@@ -290,6 +312,7 @@ export const MY_SELLER_ORDERS = gql`
       totalAmount
       status
       shippingAddress
+      phone
       notes
       createdAt
       updatedAt
@@ -627,6 +650,111 @@ export const CREATE_REVIEW = gql`
       rating
       comment
       createdAt
+    }
+  }
+`;
+
+// ========================================
+// REFUND REQUEST QUERIES & MUTATIONS
+// ========================================
+
+export const MY_REFUND_REQUESTS = gql`
+  query MyRefundRequests {
+    myRefundRequests {
+      id
+      order {
+        id
+        totalAmount
+        status
+        createdAt
+        items {
+          id
+          product {
+            id
+            name
+            imageUrls
+          }
+        }
+      }
+      reason
+      amount
+      status
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+export const SELLER_REFUND_REQUESTS = gql`
+  query SellerRefundRequests {
+    sellerRefundRequests {
+      id
+      order {
+        id
+        totalAmount
+        status
+        createdAt
+        items {
+          id
+          product {
+            id
+            name
+            imageUrls
+            seller {
+              id
+            }
+          }
+          quantity
+          price
+        }
+      }
+      user {
+        id
+        email
+        profile {
+          firstName
+          lastName
+          phone
+        }
+      }
+      reason
+      amount
+      status
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+export const CREATE_REFUND_REQUEST = gql`
+  mutation CreateRefundRequest($input: CreateRefundRequestInput!) {
+    createRefundRequest(input: $input) {
+      id
+      order {
+        id
+      }
+      reason
+      amount
+      status
+      createdAt
+    }
+  }
+`;
+
+export const APPROVE_REFUND_REQUEST = gql`
+  mutation ApproveRefundRequest($id: Int!) {
+    approveRefundRequest(id: $id) {
+      id
+      status
+    }
+  }
+`;
+
+export const REJECT_REFUND_REQUEST = gql`
+  mutation RejectRefundRequest($id: Int!) {
+    rejectRefundRequest(id: $id) {
+      id
+      status
     }
   }
 `;

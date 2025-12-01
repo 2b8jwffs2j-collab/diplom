@@ -86,9 +86,25 @@ function ProductList({
                     {product.description || 'Тайлбар байхгүй'}
                   </p>
                   <div className="flex items-center space-x-4 mt-2 flex-wrap gap-2">
-                    <span className="text-blue-600 font-bold text-lg">
-                      {formatPrice(product.price)}₮
-                    </span>
+                    <div className="flex items-center space-x-2">
+                      {product.originalPrice && product.discount && product.discount > 0 ? (
+                        <>
+                          <span className="text-blue-600 font-bold text-lg">
+                            {formatPrice(product.price)}₮
+                          </span>
+                          <span className="text-gray-400 line-through text-sm">
+                            {formatPrice(product.originalPrice)}₮
+                          </span>
+                          <span className="bg-blue-600 text-white text-xs font-bold px-2 py-0.5 rounded">
+                            -{product.discount}%
+                          </span>
+                        </>
+                      ) : (
+                        <span className="text-blue-600 font-bold text-lg">
+                          {formatPrice(product.price)}₮
+                        </span>
+                      )}
+                    </div>
                     <span className="flex items-center space-x-1 text-gray-600 text-sm">
                       <Package className="w-4 h-4" />
                       <span>Нөөц: {product.stock}</span>

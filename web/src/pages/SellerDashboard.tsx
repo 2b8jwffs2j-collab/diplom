@@ -4,15 +4,18 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import BackButton from '../components/BackButton';
+import ConfirmDialog from '../components/admin/ConfirmDialog';
 import ApproveStockRequestDialog from '../components/seller/ApproveStockRequestDialog';
 import EarningsView from '../components/seller/EarningsView';
 import OrderList from '../components/seller/OrderList';
 import ProductForm from '../components/seller/ProductForm';
 import ProductList from '../components/seller/ProductList';
 import ProfileView from '../components/seller/ProfileView';
+import RefundRequestsView from '../components/seller/RefundRequestsView';
 import StockRequestsView from '../components/seller/StockRequestsView';
 import { isAuthenticated } from '../lib/auth';
 import {
+  APPROVE_REFUND_REQUEST,
   APPROVE_STOCK_REQUEST,
   CREATE_PRODUCT,
   DELETE_PRODUCT,
@@ -20,13 +23,15 @@ import {
   GET_PRODUCTS,
   ME,
   MY_SELLER_ORDERS,
+  REJECT_REFUND_REQUEST,
   REJECT_STOCK_REQUEST,
+  SELLER_REFUND_REQUESTS,
   SELLER_STOCK_REQUESTS,
   UPDATE_ORDER_STATUS,
   UPDATE_PRODUCT,
 } from '../lib/graphql';
 
-type TabType = 'products' | 'orders' | 'earnings' | 'profile' | 'stockRequests';
+type TabType = 'products' | 'orders' | 'earnings' | 'profile' | 'stockRequests' | 'refundRequests';
 
 function SellerDashboard() {
   const navigate = useNavigate();
@@ -37,6 +42,7 @@ function SellerDashboard() {
     name: '',
     description: '',
     price: '',
+    discount: '',
     stock: '',
     categoryId: '',
     imageUrls: [] as string[],
@@ -54,6 +60,32 @@ function SellerDashboard() {
     open: false,
     requestId: null,
     expectedDate: '',
+  });
+
+  const [deleteProductDialog, setDeleteProductDialog] = useState<{
+    open: boolean;
+    productId: number | null;
+  }>({
+    open: false,
+    productId: null,
+  });
+
+  const [statusChangeDialog, setStatusChangeDialog] = useState<{
+    open: boolean;
+    orderId: number | null;
+    newStatus: string;
+  }>({
+    open: false,
+    orderId: null,
+    newStatus: '',
+  });
+
+  const [rejectStockRequestDialog, setRejectStockRequestDialog] = useState<{
+    open: boolean;
+    requestId: number | null;
+  }>({
+    open: false,
+    requestId: null,
   });
 
   const { data: meData, loading: meLoading } = useQuery(ME, {
@@ -75,6 +107,10 @@ function SellerDashboard() {
       skip: !isAuthenticated() || activeTab !== 'stockRequests',
     }
   );
+
+  const { data: refundRequestsData } = useQuery(SELLER_REFUND_REQUESTS, {
+    skip: !isAuthenticated() || activeTab !== 'refundRequests',
+  });
 
   const [createProduct, { loading: creating }] = useMutation(CREATE_PRODUCT, {
     onCompleted: () => {
@@ -146,11 +182,32 @@ function SellerDashboard() {
     },
   });
 
+  const [approveRefundRequest] = useMutation(APPROVE_REFUND_REQUEST, {
+    onCompleted: () => {
+      toast.success('Буцаалтын хүсэлт зөвшөөрөгдлөө!');
+    },
+    onError: (error) => {
+      toast.error(`Алдаа: ${error.message}`);
+    },
+    refetchQueries: [{ query: SELLER_REFUND_REQUESTS }],
+  });
+
+  const [rejectRefundRequest] = useMutation(REJECT_REFUND_REQUEST, {
+    onCompleted: () => {
+      toast.success('Буцаалтын хүсэлт татгалзлаа!');
+    },
+    onError: (error) => {
+      toast.error(`Алдаа: ${error.message}`);
+    },
+    refetchQueries: [{ query: SELLER_REFUND_REQUESTS }],
+  });
+
   const resetForm = () => {
     setFormData({
       name: '',
       description: '',
       price: '',
+      discount: '',
       stock: '',
       categoryId: '',
       imageUrls: [],
@@ -207,10 +264,18 @@ function SellerDashboard() {
       return;
     }
 
+    // Discount байвал originalPrice-ийг тооцоолно
+    const calculatedOriginalPrice =
+      formData.discount && parseFloat(formData.discount) > 0
+        ? parseFloat(formData.price) / (1 - parseFloat(formData.discount) / 100)
+        : undefined;
+
     const input = {
       name: formData.name,
       description: formData.description || undefined,
       price: parseFloat(formData.price),
+      originalPrice: calculatedOriginalPrice,
+      discount: formData.discount ? parseInt(formData.discount) : undefined,
       stock: parseInt(formData.stock),
       categoryId: formData.categoryId ? parseInt(formData.categoryId) : undefined,
       imageUrls: formData.imageUrls.length > 0 ? formData.imageUrls : undefined,
@@ -250,6 +315,7 @@ function SellerDashboard() {
       name: product.name,
       description: product.description || '',
       price: (parseInt(product.price) / 100).toString(),
+      discount: product.discount?.toString() || '',
       stock: product.stock.toString(),
       categoryId: product.categoryId?.toString() || '',
       imageUrls,
@@ -260,19 +326,36 @@ function SellerDashboard() {
   };
 
   const handleDelete = (id: number) => {
-    if (confirm('Энэ бүтээгдэхүүнийг устгах уу?')) {
-      deleteProduct({ variables: { id } });
+    setDeleteProductDialog({
+      open: true,
+      productId: id,
+    });
+  };
+
+  const handleDeleteConfirm = () => {
+    if (deleteProductDialog.productId) {
+      deleteProduct({ variables: { id: deleteProductDialog.productId } });
+      setDeleteProductDialog({ open: false, productId: null });
     }
   };
 
   const handleStatusChange = (orderId: number, newStatus: string) => {
-    if (confirm(`Захиалгын статусыг "${newStatus}" болгох уу?`)) {
+    setStatusChangeDialog({
+      open: true,
+      orderId,
+      newStatus,
+    });
+  };
+
+  const handleStatusChangeConfirm = () => {
+    if (statusChangeDialog.orderId && statusChangeDialog.newStatus) {
       updateOrderStatus({
         variables: {
-          id: orderId,
-          status: newStatus,
+          id: statusChangeDialog.orderId,
+          status: statusChangeDialog.newStatus,
         },
       });
+      setStatusChangeDialog({ open: false, orderId: null, newStatus: '' });
     }
   };
 
@@ -361,6 +444,7 @@ function SellerDashboard() {
     { id: 'orders', label: 'Захиалга', icon: ClipboardList },
     { id: 'earnings', label: 'Орлого', icon: WalletIcon },
     { id: 'stockRequests', label: 'Хүсэлтүүд', icon: ClipboardList },
+    { id: 'refundRequests', label: 'Буцаалт', icon: ClipboardList },
     { id: 'profile', label: 'Профайл', icon: User },
   ];
 
@@ -486,7 +570,24 @@ function SellerDashboard() {
                 expectedDate: '',
               })
             }
-            onReject={(id) => rejectStockRequest({ variables: { id } })}
+            onReject={(id) =>
+              setRejectStockRequestDialog({
+                open: true,
+                requestId: id,
+              })
+            }
+          />
+        </div>
+      )}
+
+      {/* Refund Requests Tab */}
+      {activeTab === 'refundRequests' && (
+        <div className="space-y-6">
+          <h2 className="text-2xl font-bold text-gray-900">Буцаалтын хүсэлтүүд</h2>
+          <RefundRequestsView
+            refundRequests={refundRequestsData?.sellerRefundRequests || []}
+            onApprove={(id) => approveRefundRequest({ variables: { id } })}
+            onReject={(id) => rejectRefundRequest({ variables: { id } })}
           />
         </div>
       )}
@@ -517,6 +618,55 @@ function SellerDashboard() {
             expectedDate: '',
           })
         }
+      />
+
+      {/* Delete Product Dialog */}
+      <ConfirmDialog
+        open={deleteProductDialog.open}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeleteProductDialog({ open: false, productId: null });
+          }
+        }}
+        title="Бүтээгдэхүүн устгах"
+        description="Энэ бүтээгдэхүүнийг устгах уу? Энэ үйлдлийг буцаах боломжгүй!"
+        confirmLabel="Устгах"
+        onConfirm={handleDeleteConfirm}
+        variant="danger"
+      />
+
+      {/* Status Change Dialog */}
+      <ConfirmDialog
+        open={statusChangeDialog.open}
+        onOpenChange={(open) => {
+          if (!open) {
+            setStatusChangeDialog({ open: false, orderId: null, newStatus: '' });
+          }
+        }}
+        title="Захиалгын статус солих"
+        description={`Захиалгын статусыг "${statusChangeDialog.newStatus}" болгох уу?`}
+        confirmLabel="Тийм"
+        onConfirm={handleStatusChangeConfirm}
+      />
+
+      {/* Reject Stock Request Dialog */}
+      <ConfirmDialog
+        open={rejectStockRequestDialog.open}
+        onOpenChange={(open) => {
+          if (!open) {
+            setRejectStockRequestDialog({ open: false, requestId: null });
+          }
+        }}
+        title="Хүсэлт татгалзах"
+        description="Энэ хүсэлтийг татгалзах уу?"
+        confirmLabel="Татгалзах"
+        onConfirm={() => {
+          if (rejectStockRequestDialog.requestId) {
+            rejectStockRequest({ variables: { id: rejectStockRequestDialog.requestId } });
+            setRejectStockRequestDialog({ open: false, requestId: null });
+          }
+        }}
+        variant="danger"
       />
     </div>
   );

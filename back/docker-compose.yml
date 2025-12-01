@@ -1,4 +1,4 @@
-version: "3.8"
+version: '3.8'
 
 services:
   mysql:
@@ -11,7 +11,7 @@ services:
       MYSQL_USER: handmade_user
       MYSQL_PASSWORD: handmade_pass
     ports:
-      - "3306:3306"
+      - '3306:3306'
     volumes:
       - mysql_data:/var/lib/mysql
     command: --default-authentication-plugin=mysql_native_password
@@ -21,7 +21,21 @@ services:
     container_name: handmade_adminer
     restart: always
     ports:
-      - "8080:8080"
+      - '8080:8080'
+    depends_on:
+      - mysql
+
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: handmade_phpmyadmin
+    restart: always
+    ports:
+      - '8081:80'
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      PMA_USER: root
+      PMA_PASSWORD: rootpassword
     depends_on:
       - mysql
 

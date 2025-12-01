@@ -18,12 +18,14 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  profile       Profile?
-  wallet        Wallet?
-  products      Product[]
-  orders        Order[]
-  reviews       Review[]
-  stockRequests StockRequest[]
+  profile            Profile?
+  wallet             Wallet?
+  products           Product[]
+  orders             Order[]
+  reviews            Review[]
+  stockRequests      StockRequest[]
+  refundRequests     RefundRequest[]
+  passwordResetTokens PasswordResetToken[]
 }
 
 enum UserRole {
@@ -100,19 +102,21 @@ model Category {
 
 // Бүтээгдэхүүн
 model Product {
-  id          Int            @id @default(autoincrement())
-  sellerId    Int
-  categoryId  Int?
-  name        String
-  description String?        @db.Text
-  price       BigInt         // төгрөгийн үнэ * 100
-  stock       Int            @default(0)
-  imageUrls   String?        @db.Text // JSON array of URLs
-  status      ProductStatus  @default(PENDING)
-  materials   String?        // materials used
-  timeToMake  String?        // "2 hours", "3 days" etc
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+  id            Int            @id @default(autoincrement())
+  sellerId      Int
+  categoryId    Int?
+  name          String
+  description   String?        @db.Text
+  price         BigInt         // төгрөгийн үнэ * 100
+  originalPrice BigInt?        // хямдрал болохоос өмнөх үнэ * 100
+  discount      Int?           // хямдралын хувь (0-100)
+  stock         Int            @default(0)
+  imageUrls     String?        @db.Text // JSON array of URLs
+  status        ProductStatus  @default(PENDING)
+  materials     String?        // materials used
+  timeToMake    String?        // "2 hours", "3 days" etc
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
 
   seller        User            @relation(fields: [sellerId], references: [id], onDelete: Cascade)
   category      Category?       @relation(fields: [categoryId], references: [id], onDelete: SetNull)
@@ -138,6 +142,7 @@ model Order {
   totalAmount     BigInt      // нийт үнэ (төгрөг * 100)
   status          OrderStatus @default(PENDING)
   shippingAddress String?     @db.Text
+  phone           String?     // утасны дугаар
   notes           String?     @db.Text
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
@@ -145,6 +150,7 @@ model Order {
   buyer             User                @relation(fields: [buyerId], references: [id], onDelete: Cascade)
   items             OrderItem[]
   walletTransaction WalletTransaction[]
+  refundRequests    RefundRequest[]
 
   @@index([buyerId])
   @@index([status])
@@ -214,5 +220,46 @@ enum StockRequestStatus {
   PENDING   // Хүлээгдэж байна
   APPROVED  // Зөвшөөрөгдсөн
   REJECTED  // Татгалзсан
+}
+
+// Буцаалтын хүсэлт
+model RefundRequest {
+  id          Int                  @id @default(autoincrement())
+  orderId     Int
+  userId      Int
+  reason       String?              @db.Text
+  amount       BigInt               // буцаах дүн (төгрөг * 100)
+  status       RefundRequestStatus   @default(PENDING)
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([userId])
+  @@index([status])
+}
+
+enum RefundRequestStatus {
+  PENDING   // Хүлээгдэж байна
+  APPROVED  // Зөвшөөрөгдсөн
+  REJECTED  // Татгалзсан
+}
+
+// Нууц үг сэргээх token
+model PasswordResetToken {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  token     String   @unique
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@index([expiresAt])
 }
 

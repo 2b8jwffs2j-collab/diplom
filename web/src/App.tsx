@@ -7,8 +7,11 @@ import Cart from './pages/Cart';
 import Wallet from './pages/Wallet';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import ChangePassword from './pages/ChangePassword';
+import ForgotPassword from './pages/ForgotPassword';
 import MyOrders from './pages/MyOrders';
 import OrderDetail from './pages/OrderDetail';
+import RefundRequests from './pages/RefundRequests';
 import SellerDashboard from './pages/SellerDashboard';
 import AdminPanel from './pages/AdminPanel';
 
@@ -18,6 +21,8 @@ function App() {
       {/* Auth pages without Layout */}
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/change-password" element={<ChangePassword />} />
 
       {/* All other pages with Layout */}
       <Route
@@ -32,6 +37,7 @@ function App() {
               <Route path="/wallet" element={<Wallet />} />
               <Route path="/orders" element={<MyOrders />} />
               <Route path="/orders/:id" element={<OrderDetail />} />
+              <Route path="/refund-requests" element={<RefundRequests />} />
               <Route path="/seller" element={<SellerDashboard />} />
               <Route path="/admin" element={<AdminPanel />} />
             </Routes>

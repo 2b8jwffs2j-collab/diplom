@@ -5,6 +5,7 @@ type PaymentMethod = 'wallet' | 'bank-transfer';
 
 interface CheckoutFormProps {
   shippingAddress: string;
+  phone: string;
   notes: string;
   paymentMethod: PaymentMethod;
   total: number;
@@ -12,6 +13,7 @@ interface CheckoutFormProps {
   isAuthenticated: boolean;
   purchasing: boolean;
   onShippingAddressChange: (address: string) => void;
+  onPhoneChange: (phone: string) => void;
   onNotesChange: (notes: string) => void;
   onPaymentMethodChange: (method: PaymentMethod) => void;
   onPurchase: () => void;
@@ -20,6 +22,7 @@ interface CheckoutFormProps {
 
 function CheckoutForm({
   shippingAddress,
+  phone,
   notes,
   paymentMethod,
   total,
@@ -27,6 +30,7 @@ function CheckoutForm({
   isAuthenticated,
   purchasing,
   onShippingAddressChange,
+  onPhoneChange,
   onNotesChange,
   onPaymentMethodChange,
   onPurchase,
@@ -48,6 +52,18 @@ function CheckoutForm({
           className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
           rows={3}
           placeholder="Улаанбаатар, СБД, 1-р хороо..."
+        />
+      </div>
+
+      {/* Phone */}
+      <div className="mb-4">
+        <label className="block text-sm font-medium text-gray-700 mb-2">Утасны дугаар *</label>
+        <input
+          type="tel"
+          value={phone}
+          onChange={(e) => onPhoneChange(e.target.value)}
+          className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
+          placeholder="99112233"
         />
       </div>
 

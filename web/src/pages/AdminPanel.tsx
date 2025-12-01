@@ -76,6 +76,14 @@ function AdminPanel() {
     productName: '',
   });
 
+  const [approveProductDialog, setApproveProductDialog] = useState<{
+    open: boolean;
+    productId: number | null;
+  }>({
+    open: false,
+    productId: null,
+  });
+
   const { data: meData, loading: meLoading } = useQuery(ME, {
     skip: !isAuthenticated(),
     fetchPolicy: 'network-only',
@@ -202,8 +210,16 @@ function AdminPanel() {
   };
 
   const handleApprove = (id: number) => {
-    if (confirm('Энэ бүтээгдэхүүнийг зөвшөөрөх үү?')) {
-      approveProduct({ variables: { id } });
+    setApproveProductDialog({
+      open: true,
+      productId: id,
+    });
+  };
+
+  const handleApproveConfirm = () => {
+    if (approveProductDialog.productId) {
+      approveProduct({ variables: { id: approveProductDialog.productId } });
+      setApproveProductDialog({ open: false, productId: null });
     }
   };
 
@@ -422,6 +438,19 @@ function AdminPanel() {
         confirmLabel="Татгалзах"
         onConfirm={handleRejectConfirm}
         variant="danger"
+      />
+
+      <ConfirmDialog
+        open={approveProductDialog.open}
+        onOpenChange={(open) => {
+          if (!open) {
+            setApproveProductDialog({ open: false, productId: null });
+          }
+        }}
+        title="Бүтээгдэхүүн зөвшөөрөх"
+        description="Энэ бүтээгдэхүүнийг зөвшөөрөх үү?"
+        confirmLabel="Зөвшөөрөх"
+        onConfirm={handleApproveConfirm}
       />
     </div>
   );

@@ -5,6 +5,7 @@ interface ProductFormProps {
     name: string;
     description: string;
     price: string;
+    discount: string;
     stock: string;
     categoryId: string;
     imageUrls: string[];
@@ -66,6 +67,30 @@ function ProductForm({
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               placeholder="5"
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Хямдрал (%){' '}
+              <span className="text-xs text-gray-500">(сонголттой, 30% = 30 гэж бичих)</span>
+            </label>
+            <input
+              type="number"
+              min="0"
+              max="100"
+              value={formData.discount}
+              onChange={(e) => onFormDataChange({ ...formData, discount: e.target.value })}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              placeholder="0"
+            />
+            {formData.discount && parseFloat(formData.discount) > 0 && formData.price && (
+              <p className="text-xs text-gray-500 mt-1">
+                Хуучин үнэ: ₮
+                {(parseFloat(formData.price) / (1 - parseFloat(formData.discount) / 100)).toFixed(
+                  0
+                )}
+              </p>
+            )}
           </div>
 
           <div>

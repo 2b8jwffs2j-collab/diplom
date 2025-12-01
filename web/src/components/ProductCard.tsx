@@ -103,7 +103,16 @@ function ProductCard({ product, discountPercent, originalPrice }: ProductCardPro
     (originalPriceNum
       ? Math.round(((originalPriceNum - priceNum) / originalPriceNum) * 100)
       : null);
-  const saved = originalPriceNum ? originalPriceNum - priceNum : null;
+
+  // Хуучин үнийг тооцоолох: originalPrice байвал түүнийг, эсвэл discountPercent байвал тооцоолно
+  const calculatedOriginalPrice = originalPriceNum
+    ? originalPriceNum
+    : discountPercent && discountPercent > 0
+      ? priceNum / (1 - discountPercent / 100)
+      : null;
+
+  // Хэмнэлтийг тооцоолох
+  const saved = calculatedOriginalPrice ? calculatedOriginalPrice - priceNum : null;
 
   const handleWishlistClick = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -253,9 +262,9 @@ function ProductCard({ product, discountPercent, originalPrice }: ProductCardPro
             {/* Current Price */}
             <div className="flex items-baseline gap-2">
               <span className="text-xl font-bold text-gray-900">₮{formatPrice(product.price)}</span>
-              {originalPriceNum && originalPriceNum > priceNum && (
+              {calculatedOriginalPrice && calculatedOriginalPrice > priceNum && (
                 <span className="text-sm text-gray-400 line-through">
-                  ₮{formatPrice(originalPrice || '0')}
+                  ₮{Math.round(calculatedOriginalPrice).toLocaleString()}
                 </span>
               )}
             </div>

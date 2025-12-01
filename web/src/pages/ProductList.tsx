@@ -1,15 +1,27 @@
 import { useQuery } from '@apollo/client';
 import { ChevronLeft, ChevronRight, Image as ImageIcon } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import ProductCard from '../components/ProductCard';
+import { useSearchParams } from 'react-router-dom';
 import BackButton from '../components/BackButton';
+import ProductCard from '../components/ProductCard';
 import { GET_CATEGORIES, GET_PRODUCTS } from '../lib/graphql';
 
 type SortOption = 'newest' | 'price-low' | 'price-high' | 'name';
 
 function ProductList() {
+  const [searchParams] = useSearchParams();
   const [search, setSearch] = useState('');
-  const [categoryId, setCategoryId] = useState<number | undefined>(undefined);
+
+  // URL-аас category parameter уншаад тооцоолох (useMemo ашиглах)
+  const categoryId = useMemo(() => {
+    const categoryParam = searchParams.get('category');
+    if (categoryParam) {
+      const categoryIdNum = parseInt(categoryParam, 10);
+      return !isNaN(categoryIdNum) ? categoryIdNum : undefined;
+    }
+    return undefined;
+  }, [searchParams]);
+
   const [sortBy, setSortBy] = useState<SortOption>('newest');
   const [priceMin, setPriceMin] = useState('');
   const [priceMax, setPriceMax] = useState('');
@@ -73,7 +85,20 @@ function ProductList() {
   };
 
   const handleCategoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setCategoryId(e.target.value ? parseInt(e.target.value) : undefined);
+    const newCategoryId = e.target.value ? parseInt(e.target.value) : undefined;
+    const newSearchParams = new URLSearchParams(searchParams);
+    if (newCategoryId) {
+      newSearchParams.set('category', newCategoryId.toString());
+    } else {
+      newSearchParams.delete('category');
+    }
+    // URL шинэчлэх нь categoryId-ийг автоматаар шинэчлэнэ (useMemo-оор)
+    const newUrl = newSearchParams.toString()
+      ? `${window.location.pathname}?${newSearchParams.toString()}`
+      : window.location.pathname;
+    window.history.pushState({}, '', newUrl);
+    // Force re-render by triggering searchParams change
+    searchParams.set('category', newCategoryId?.toString() || '');
     setCurrentPage(1);
   };
 
@@ -180,10 +205,13 @@ function ProductList() {
           {(categoryId || priceMin || priceMax || search) && (
             <button
               onClick={() => {
-                setCategoryId(undefined);
+                const newUrl = window.location.pathname;
+                window.history.pushState({}, '', newUrl);
+                searchParams.delete('category');
                 setPriceMin('');
                 setPriceMax('');
                 setSearch('');
+                setCurrentPage(1);
               }}
               className="text-xs sm:text-sm font-medium text-blue-600 hover:text-blue-700 px-3 sm:px-4 py-2 hover:bg-blue-50 rounded-lg transition-colors inline-flex items-center"
             >
@@ -228,7 +256,12 @@ function ProductList() {
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4 md:gap-6">
             {paginatedProducts.map((product: any) => (
-              <ProductCard key={product.id} product={product} />
+              <ProductCard
+                key={product.id}
+                product={product}
+                discountPercent={product.discount || undefined}
+                originalPrice={product.originalPrice}
+              />
             ))}
           </div>
           {/* Pagination */}

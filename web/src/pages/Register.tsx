@@ -33,6 +33,11 @@ function Register() {
       return;
     }
 
+    if (!formData.phone || !formData.phone.trim()) {
+      toast.error('Утасны дугаар оруулна уу!');
+      return;
+    }
+
     if (formData.password !== formData.confirmPassword) {
       toast.error('Нууц үг таарахгүй байна!');
       return;
@@ -47,7 +52,7 @@ function Register() {
             role: formData.role,
             firstName: formData.firstName || undefined,
             lastName: formData.lastName || undefined,
-            phone: formData.phone || undefined,
+            phone: formData.phone,
           },
         },
       });
@@ -148,13 +153,14 @@ function Register() {
 
           {/* Phone */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Утасны дугаар</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Утасны дугаар *</label>
             <input
               type="tel"
               value={formData.phone}
               onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
               className="w-full px-4 py-2.5 border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white transition-all shadow-sm focus:shadow-md"
               placeholder="99001122"
+              required
             />
           </div>
 

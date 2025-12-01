@@ -23,6 +23,7 @@ function Cart() {
   const navigate = useNavigate();
   const [cart, setCart] = useState<CartItem[]>([]);
   const [shippingAddress, setShippingAddress] = useState('');
+  const [phone, setPhone] = useState('');
   const [notes, setNotes] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('wallet');
   const [purchasing, setPurchasing] = useState(false);
@@ -68,6 +69,11 @@ function Cart() {
       return;
     }
 
+    if (!phone.trim()) {
+      toast.error('Утасны дугаар оруулна уу!');
+      return;
+    }
+
     if (cart.length === 0) {
       toast.error('Сагс хоосон байна!');
       return;
@@ -95,6 +101,7 @@ function Cart() {
             input: {
               items,
               shippingAddress,
+              phone: phone || undefined,
               notes: notes || undefined,
             },
           },
@@ -115,6 +122,7 @@ function Cart() {
             input: {
               items,
               shippingAddress,
+              phone: phone || undefined,
               notes: notes || undefined,
             },
           },
@@ -180,6 +188,7 @@ function Cart() {
         <div>
           <CheckoutForm
             shippingAddress={shippingAddress}
+            phone={phone}
             notes={notes}
             paymentMethod={paymentMethod}
             total={total}
@@ -187,6 +196,7 @@ function Cart() {
             isAuthenticated={isAuthenticated()}
             purchasing={purchasing}
             onShippingAddressChange={setShippingAddress}
+            onPhoneChange={setPhone}
             onNotesChange={setNotes}
             onPaymentMethodChange={setPaymentMethod}
             onPurchase={handlePurchase}

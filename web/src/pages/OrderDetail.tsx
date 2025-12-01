@@ -228,11 +228,21 @@ function OrderDetail() {
               </div>
             </div>
 
-            {/* Shipping Address */}
-            {order.shippingAddress && (
+            {/* Shipping Address & Phone */}
+            {(order.shippingAddress || order.phone) && (
               <div className="mb-4 p-3 bg-gray-50 rounded">
-                <p className="text-sm font-medium text-gray-700 mb-1">Хүргэх хаяг:</p>
-                <p className="text-sm text-gray-600">{order.shippingAddress}</p>
+                {order.shippingAddress && (
+                  <>
+                    <p className="text-sm font-medium text-gray-700 mb-1">Хүргэх хаяг:</p>
+                    <p className="text-sm text-gray-600 mb-2">{order.shippingAddress}</p>
+                  </>
+                )}
+                {order.phone && (
+                  <>
+                    <p className="text-sm font-medium text-gray-700 mb-1">Утасны дугаар:</p>
+                    <p className="text-sm text-gray-600 font-semibold">{order.phone}</p>
+                  </>
+                )}
               </div>
             )}
 

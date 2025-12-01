@@ -36,6 +36,12 @@ export const typeDefs = `#graphql
     REJECTED
   }
 
+  enum RefundRequestStatus {
+    PENDING
+    APPROVED
+    REJECTED
+  }
+
   # ========================================
   # TYPES
   # ========================================
@@ -100,6 +106,8 @@ export const typeDefs = `#graphql
     name: String!
     description: String
     price: String!
+    originalPrice: String
+    discount: Int
     stock: Int!
     imageUrls: [String!]
     status: ProductStatus!
@@ -118,6 +126,7 @@ export const typeDefs = `#graphql
     totalAmount: String!
     status: OrderStatus!
     shippingAddress: String
+    phone: String
     notes: String
     items: [OrderItem!]!
     createdAt: String!
@@ -154,6 +163,17 @@ export const typeDefs = `#graphql
     updatedAt: String!
   }
 
+  type RefundRequest {
+    id: Int!
+    order: Order!
+    user: User!
+    reason: String
+    amount: String!
+    status: RefundRequestStatus!
+    createdAt: String!
+    updatedAt: String!
+  }
+
   type AuthPayload {
     token: String!
     user: User!
@@ -163,6 +183,11 @@ export const typeDefs = `#graphql
     success: Boolean!
     message: String!
     order: Order
+  }
+
+  type ChangePasswordResult {
+    success: Boolean!
+    message: String!
   }
 
   type AdminStats {
@@ -187,7 +212,7 @@ export const typeDefs = `#graphql
     role: UserRole
     firstName: String
     lastName: String
-    phone: String
+    phone: String!
   }
 
   input LoginInput {
@@ -199,6 +224,8 @@ export const typeDefs = `#graphql
     name: String!
     description: String
     price: Float!
+    originalPrice: Float
+    discount: Int
     stock: Int!
     categoryId: Int
     imageUrls: [String!]
@@ -210,6 +237,8 @@ export const typeDefs = `#graphql
     name: String
     description: String
     price: Float
+    originalPrice: Float
+    discount: Int
     stock: Int
     categoryId: Int
     imageUrls: [String!]
@@ -220,6 +249,7 @@ export const typeDefs = `#graphql
   input CreateOrderInput {
     items: [OrderItemInput!]!
     shippingAddress: String!
+    phone: String
     notes: String
   }
 
@@ -249,6 +279,26 @@ export const typeDefs = `#graphql
     userId: Int!
     amount: Float!
     description: String
+  }
+
+  input CreateRefundRequestInput {
+    orderId: Int!
+    reason: String
+    amount: Float!
+  }
+
+  input ChangePasswordInput {
+    currentPassword: String!
+    newPassword: String!
+  }
+
+  input RequestPasswordResetInput {
+    email: String!
+  }
+
+  input ResetPasswordInput {
+    token: String!
+    newPassword: String!
   }
 
   # ========================================
@@ -295,6 +345,12 @@ export const typeDefs = `#graphql
     # Stock Requests
     myStockRequests: [StockRequest!]!
     sellerStockRequests: [StockRequest!]!
+
+    # Refund Requests
+    myRefundRequests: [RefundRequest!]!
+    sellerRefundRequests: [RefundRequest!]!
+    adminRefundRequests: [RefundRequest!]!
+    refundRequest(id: Int!): RefundRequest
   }
 
   # ========================================
@@ -305,6 +361,9 @@ export const typeDefs = `#graphql
     # Auth
     register(input: RegisterInput!): AuthPayload!
     login(input: LoginInput!): AuthPayload!
+    changePassword(input: ChangePasswordInput!): ChangePasswordResult!
+    requestPasswordReset(input: RequestPasswordResetInput!): ChangePasswordResult!
+    resetPasswordWithToken(input: ResetPasswordInput!): ChangePasswordResult!
 
     # Profile
     updateProfile(input: UpdateProfileInput!): Profile!
@@ -337,5 +396,10 @@ export const typeDefs = `#graphql
     createStockRequest(productId: Int!, quantity: Int!): StockRequest!
     approveStockRequest(id: Int!, expectedCompletionDate: String!): StockRequest!
     rejectStockRequest(id: Int!): StockRequest!
+
+    # Refund Requests
+    createRefundRequest(input: CreateRefundRequestInput!): RefundRequest!
+    approveRefundRequest(id: Int!): RefundRequest!
+    rejectRefundRequest(id: Int!): RefundRequest!
   }
 `;

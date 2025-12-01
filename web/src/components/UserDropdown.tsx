@@ -2,6 +2,7 @@ import { useApolloClient, useMutation } from '@apollo/client';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import {
   ChevronDown,
+  Lock,
   LogOutIcon,
   Settings,
   ShoppingCart,
@@ -206,6 +207,18 @@ function UserDropdown({ user }: UserDropdownProps) {
                 </Link>
               </DropdownMenu.Item>
             )}
+
+            <DropdownMenu.Separator className="h-px bg-gray-200 my-1" />
+
+            <DropdownMenu.Item
+              className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-gray-100 cursor-pointer outline-none"
+              asChild
+            >
+              <Link to="/change-password">
+                <Lock className="w-4 h-4 text-gray-600" />
+                <span className="text-sm text-gray-700">Нууц үг солих</span>
+              </Link>
+            </DropdownMenu.Item>
 
             <DropdownMenu.Separator className="h-px bg-gray-200 my-1" />
 

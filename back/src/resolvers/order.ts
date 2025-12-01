@@ -7,6 +7,7 @@ interface CreateOrderInput {
     quantity: number;
   }>;
   shippingAddress: string;
+  phone?: string;
   notes?: string;
 }
 
@@ -171,6 +172,7 @@ export const orderResolvers = {
             buyerId: context.user!.id,
             totalAmount,
             shippingAddress: input.shippingAddress,
+            phone: input.phone,
             notes: input.notes,
             status: 'PENDING',
           },
@@ -310,6 +312,7 @@ export const orderResolvers = {
               buyerId: context.user!.id,
               totalAmount,
               shippingAddress: input.shippingAddress,
+              phone: input.phone,
               notes: input.notes,
               status: 'PENDING',
             },

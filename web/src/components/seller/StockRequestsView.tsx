@@ -48,11 +48,7 @@ function StockRequestsView({ stockRequests, onApproveClick, onReject }: StockReq
                 Зөвшөөрөх
               </button>
               <button
-                onClick={() => {
-                  if (confirm('Энэ хүсэлтийг татгалзах уу?')) {
-                    onReject(request.id);
-                  }
-                }}
+                onClick={() => onReject(request.id)}
                 className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-sm"
               >
                 Татгалзах

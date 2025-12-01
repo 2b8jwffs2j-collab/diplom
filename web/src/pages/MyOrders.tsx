@@ -1,16 +1,21 @@
+import { useState } from 'react';
 import { useQuery } from '@apollo/client';
 import { useNavigate, Link } from 'react-router-dom';
-import { Image as ImageIcon, Package } from 'lucide-react';
+import { Image as ImageIcon, Package, RotateCcw } from 'lucide-react';
 import dayjs from 'dayjs';
 import 'dayjs/locale/mn';
 import { MY_ORDERS } from '../lib/graphql';
 import { formatPrice } from '../lib/cart';
 import { isAuthenticated } from '../lib/auth';
 import BackButton from '../components/BackButton';
+import RefundRequestDialog from '../components/RefundRequestDialog';
 
 function MyOrders() {
   const navigate = useNavigate();
-  const { data, loading } = useQuery(MY_ORDERS, {
+  const [selectedOrder, setSelectedOrder] = useState<any>(null);
+  const [isRefundDialogOpen, setIsRefundDialogOpen] = useState(false);
+
+  const { data, loading, refetch } = useQuery(MY_ORDERS, {
     skip: !isAuthenticated(),
   });
 
@@ -143,18 +148,45 @@ function MyOrders() {
                 </div>
               )}
 
-              {/* View Details Button */}
-              <div className="border-t pt-4 mt-4">
+              {/* Actions */}
+              <div className="border-t pt-4 mt-4 flex items-center justify-between">
                 <Link
                   to={`/orders/${order.id}`}
                   className="inline-block bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition text-sm font-medium"
                 >
                   Дэлгэрэнгүй харах →
                 </Link>
+                {order.status !== 'CANCELLED' && (
+                  <button
+                    onClick={() => {
+                      setSelectedOrder(order);
+                      setIsRefundDialogOpen(true);
+                    }}
+                    className="inline-flex items-center space-x-2 bg-orange-50 text-orange-600 px-4 py-2 rounded-lg hover:bg-orange-100 transition text-sm font-medium border border-orange-200"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                    <span>Буцаалт хүсэх</span>
+                  </button>
+                )}
               </div>
             </div>
           ))}
         </div>
+      )}
+
+      {/* Refund Request Dialog */}
+      {selectedOrder && (
+        <RefundRequestDialog
+          order={selectedOrder}
+          isOpen={isRefundDialogOpen}
+          onClose={() => {
+            setIsRefundDialogOpen(false);
+            setSelectedOrder(null);
+          }}
+          onSuccess={() => {
+            refetch();
+          }}
+        />
       )}
     </div>
   );
